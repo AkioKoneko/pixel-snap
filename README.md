@@ -18,6 +18,13 @@ One-time:
 python -m pip install Pillow
 ```
 
+For tests:
+
+```powershell
+npm --prefix test ci
+node test\acceptance.mjs
+```
+
 Optional — add to PATH for `snap` from any folder:
 
 ```powershell
@@ -31,7 +38,7 @@ To make permanent: System Properties → Environment Variables → User PATH →
 
 ### Web app
 
-Double-click `Pixel Snap Web.bat` to open the browser app. It starts a local-only web server on `127.0.0.1` automatically, because ES modules + WASM cannot load reliably from `file://`.
+Double-click `Pixel Snap Web.bat` to open the app in a standalone Chrome/Edge app window. It starts a local-only web server on `127.0.0.1` automatically, because ES modules + WASM cannot load reliably from `file://`.
 
 ### Console (any folder)
 

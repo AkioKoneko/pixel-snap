@@ -3,12 +3,20 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { PNG } from 'pngjs';
-import { process_image } from '../test-pkg/spritefusion_pixel_snapper.js';
+import { createHash } from 'node:crypto';
+import init, { process_image } from '../web/pkg/spritefusion_pixel_snapper.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.dirname(here);
 const srcPath = path.join(root, 'test-input', 'berries_source.png');
-const expPath = path.join(root, 'test-input', 'berries_expected.png');
+const wasmPath = path.join(root, 'web', 'pkg', 'spritefusion_pixel_snapper_bg.wasm');
+const expected = {
+  w: 39,
+  h: 36,
+  rgbaSha256: '23a76b04be7c1a0cd93d595dca2f791d4dc9f0f7c6a6c10d58a02fa3afb38ca1',
+};
+
+await init({ module_or_path: readFileSync(wasmPath) });
 
 // --- snap.py port (mirror of web/app.js) ---
 
@@ -95,9 +103,6 @@ chromaKey(snapped.rgba, bg, 30);
 const trimmed = alphaTrim(snapped.rgba, snapped.w, snapped.h);
 console.log(`trimmed: ${trimmed.w}x${trimmed.h}`);
 
-// --- diff against snap.py reference ---
-
-const expected = decodePng(readFileSync(expPath));
 console.log(`expected: ${expected.w}x${expected.h}`);
 
 if (trimmed.w !== expected.w || trimmed.h !== expected.h) {
@@ -105,23 +110,12 @@ if (trimmed.w !== expected.w || trimmed.h !== expected.h) {
   process.exit(1);
 }
 
-let diffPx = 0;
-for (let i = 0; i < trimmed.rgba.length; i += 4) {
-  if (
-    trimmed.rgba[i] !== expected.rgba[i] ||
-    trimmed.rgba[i + 1] !== expected.rgba[i + 1] ||
-    trimmed.rgba[i + 2] !== expected.rgba[i + 2] ||
-    trimmed.rgba[i + 3] !== expected.rgba[i + 3]
-  ) {
-    diffPx++;
-  }
-}
-
 const total = trimmed.w * trimmed.h;
-if (diffPx === 0) {
+const actualHash = createHash('sha256').update(trimmed.rgba).digest('hex');
+if (actualHash === expected.rgbaSha256) {
   console.log(`PASS: ${total} pixels identical`);
   process.exit(0);
 } else {
-  console.error(`FAIL: ${diffPx}/${total} pixels differ`);
+  console.error(`FAIL: RGBA hash mismatch (got ${actualHash}, expected ${expected.rgbaSha256})`);
   process.exit(1);
 }

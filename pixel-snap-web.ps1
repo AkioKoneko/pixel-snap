@@ -28,6 +28,27 @@ try {
     }
   }
 
+  function Find-Chromium {
+    $paths = @(
+      "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+      "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+      "$env:LocalAppData\Google\Chrome\Application\chrome.exe",
+      "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
+      "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
+    )
+
+    foreach ($path in $paths) {
+      if ($path -and (Test-Path $path)) { return $path }
+    }
+
+    foreach ($cmd in @("chrome", "msedge")) {
+      $found = Get-Command $cmd -ErrorAction SilentlyContinue
+      if ($found) { return $found.Source }
+    }
+
+    return $null
+  }
+
   foreach ($candidate in 8765..8775) {
     if (Test-AppServing $candidate) {
       $Port = $candidate
@@ -71,7 +92,19 @@ try {
     }
   }
 
-  Start-Process "http://127.0.0.1:$Port/web/"
+  $Url = "http://127.0.0.1:$Port/web/"
+  $Browser = Find-Chromium
+
+  if ($Browser) {
+    $Profile = Join-Path $env:TEMP "pixel-snap-web-profile"
+    Start-Process -FilePath $Browser -ArgumentList @(
+      "--app=$Url",
+      "--user-data-dir=$Profile",
+      "--no-first-run"
+    )
+  } else {
+    Start-Process $Url
+  }
 } catch {
   Write-Host ""
   Write-Host "Pixel Snap Web launch failed:" -ForegroundColor Red
