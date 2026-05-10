@@ -99,6 +99,8 @@ try {
     $Profile = Join-Path $env:TEMP "pixel-snap-web-profile"
     Start-Process -FilePath $Browser -ArgumentList @(
       "--app=$Url",
+      "--window-size=1100,1300",
+      "--window-position=80,40",
       "--user-data-dir=$Profile",
       "--no-first-run"
     )

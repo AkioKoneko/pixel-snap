@@ -12,6 +12,9 @@ docs/goals/
 # Dependency/build output.
 test/node_modules/
 snapper-src/target/
+app/test/node_modules/
+app/snapper-src/target/
+*.lnk
 
 # OS/editor noise.
 .DS_Store

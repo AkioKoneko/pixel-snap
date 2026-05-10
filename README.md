@@ -21,57 +21,61 @@ python -m pip install Pillow
 For tests:
 
 ```powershell
-npm --prefix test ci
-node test\acceptance.mjs
+npm --prefix app\test ci
+node app\test\acceptance.mjs
 ```
 
 Optional — add to PATH for `snap` from any folder:
 
 ```powershell
 # session-only
-$env:PATH = "$env:USERPROFILE\OneDrive\Documents\Tools\pixel-snap;$env:PATH"
+$env:PATH = "$env:USERPROFILE\OneDrive\Documents\Tools\pixel-snap\app;$env:PATH"
 ```
 
-To make permanent: System Properties → Environment Variables → User PATH → add `C:\Users\sasha\OneDrive\Documents\Tools\pixel-snap`.
+To make permanent: System Properties → Environment Variables → User PATH → add `C:\Users\sasha\OneDrive\Documents\Tools\pixel-snap\app`.
 
 ## Usage
 
 ### Web app
 
-Double-click `Pixel Snap Web.bat` to open the app in a standalone Chrome/Edge app window. It starts a local-only web server on `127.0.0.1` automatically, because ES modules + WASM cannot load reliably from `file://`.
+Double-click `Pixel Snap.lnk` to open the app in a standalone Chrome/Edge app window. It starts a local-only web server on `127.0.0.1` automatically, because ES modules + WASM cannot load reliably from `file://`.
+
+If Windows hides shortcut extensions, it appears as `Pixel Snap` with the app icon. `Pixel Snap.bat` is the plain fallback launcher.
+
+Most implementation files live under `app/` so the repo root stays launcher-focused.
 
 ### Console (any folder)
 
 ```powershell
 # Most common — auto-detect bg, trim to bbox, output a tight pixel-perfect PNG
-snap.bat input.png output.png --trim
+app\snap.bat input.png output.png --trim
 
 # Character with foot anchor — keep full frame
-snap.bat hero.png hero_pixel.png
+app\snap.bat hero.png hero_pixel.png
 
 # Tile (no chroma key, no trim)
-snap.bat grass.png grass_pixel.png --chroma off
+app\snap.bat grass.png grass_pixel.png --chroma off
 
 # Force specific background color (e.g. magenta)
-snap.bat sprite.png sprite_pixel.png --trim --chroma force --chroma-color FF00FF
+app\snap.bat sprite.png sprite_pixel.png --trim --chroma force --chroma-color FF00FF
 
 # Override auto-detected pixel size when grid detection fails
-snap.bat sprite.png sprite_pixel.png --pixel-size 16 --trim
+app\snap.bat sprite.png sprite_pixel.png --pixel-size 16 --trim
 
 # Save the intermediate snap (background intact) too
-snap.bat sprite.png sprite_pixel.png --trim --snapped-out sprite_snapped.png
+app\snap.bat sprite.png sprite_pixel.png --trim --snapped-out sprite_snapped.png
 ```
 
 ### Direct Python invocation
 
 ```powershell
-python C:\Users\sasha\OneDrive\Documents\Tools\pixel-snap\snap.py input.png output.png --trim
+python C:\Users\sasha\OneDrive\Documents\Tools\pixel-snap\app\snap.py input.png output.png --trim
 ```
 
 ### PowerShell launcher
 
 ```powershell
-& "$env:USERPROFILE\OneDrive\Documents\Tools\pixel-snap\snap.ps1" input.png output.png --trim
+& "$env:USERPROFILE\OneDrive\Documents\Tools\pixel-snap\app\snap.ps1" input.png output.png --trim
 ```
 
 ## Flags reference
@@ -110,7 +114,7 @@ git clone https://github.com/Hugo-Dz/spritefusion-pixel-snapper.git $env:TEMP\sf
 cd $env:TEMP\sf-snapper
 cargo build --release
 copy target\release\spritefusion-pixel-snapper.exe `
-     "$env:USERPROFILE\OneDrive\Documents\Tools\pixel-snap\pixel-snapper.exe"
+     "$env:USERPROFILE\OneDrive\Documents\Tools\pixel-snap\app\pixel-snapper.exe"
 ```
 
 ## License
