@@ -1,0 +1,19 @@
+# Local agent/session context. Do not publish.
+AGENTS.md
+CLAUDE.md
+docs/goals/
+
+# Secrets and local environment.
+.env
+.env.*
+*.pem
+*.key
+
+# Dependency/build output.
+test/node_modules/
+snapper-src/target/
+
+# OS/editor noise.
+.DS_Store
+Thumbs.db
+*.log

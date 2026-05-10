@@ -1,0 +1,15 @@
+{
+  "name": "spritefusion-pixel-snapper",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "spritefusion_pixel_snapper_bg.wasm",
+    "spritefusion_pixel_snapper.js",
+    "spritefusion_pixel_snapper.d.ts"
+  ],
+  "main": "spritefusion_pixel_snapper.js",
+  "types": "spritefusion_pixel_snapper.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

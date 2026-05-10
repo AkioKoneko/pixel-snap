@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pixel Snap</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Pixel Snap</h1>
+  <p class="sub">Snap mixel art to a pixel-perfect grid. Local, no upload.</p>
+</header>
+
+<main>
+  <section id="drop" class="drop-zone">
+    <p>Drop a PNG/JPG here or <label class="link" for="file">browse</label>.</p>
+    <input type="file" id="file" accept="image/png,image/jpeg" hidden>
+  </section>
+
+  <section class="controls">
+    <div class="row">
+      <label>
+        k_colors <output id="k-val">16</output>
+        <span class="hint">Сколько цветов оставить перед поиском пиксельной сетки. 16 обычно норм, 24-32 лучше для теней.</span>
+      </label>
+      <input type="range" id="k" min="1" max="32" value="16" step="1">
+    </div>
+    <div class="row">
+      <label>
+        pixel_size override
+        <span class="hint">Оставь auto. Вводи число только если авто-сетка ошиблась.</span>
+      </label>
+      <input type="number" id="pixel-size" min="1" max="256" placeholder="auto">
+    </div>
+    <div class="row">
+      <label>
+        chroma
+        <span class="hint">auto берет фон из углов. off не трогает фон. force использует выбранный цвет.</span>
+      </label>
+      <span class="radios">
+        <label><input type="radio" name="chroma" value="auto" checked> auto</label>
+        <label><input type="radio" name="chroma" value="off"> off</label>
+        <label><input type="radio" name="chroma" value="force"> force</label>
+      </span>
+      <input type="color" id="chroma-color" value="#ff00ff" disabled>
+    </div>
+    <div class="row">
+      <label>
+        tolerance <output id="tolerance-val">30</output>
+        <span class="hint">Насколько близкий к фону цвет станет прозрачным. Больше - агрессивнее чистка.</span>
+      </label>
+      <input type="range" id="tolerance" min="0" max="80" value="30" step="1">
+    </div>
+    <div class="row">
+      <label>
+        <input type="checkbox" id="trim" checked> trim to alpha bbox
+        <span class="hint">Обрезает пустую прозрачную рамку вокруг объекта, с запасом 1 px как в snap.py.</span>
+      </label>
+    </div>
+    <div class="row">
+      <button id="run" disabled>Snap</button>
+      <button id="download" disabled title="Скачивает native PNG, без preview-увеличения.">Download PNG</button>
+      <span id="status" class="status"></span>
+    </div>
+  </section>
+
+  <section class="previews">
+    <div class="preview">
+      <h2>Source</h2>
+      <div class="canvas-box"><img id="source-img" alt=""></div>
+    </div>
+    <div class="preview">
+      <h2>Result <span id="preview-scale" class="preview-scale"></span></h2>
+      <div id="result-box" class="canvas-box result-box checkerboard"><canvas id="result-canvas" width="0" height="0"></canvas></div>
+    </div>
+  </section>
+
+  <section id="meta" class="meta"></section>
+</main>
+
+<footer>
+  <p>
+    Snapper algorithm: <a href="https://github.com/Hugo-Dz/spritefusion-pixel-snapper" target="_blank" rel="noopener">spritefusion-pixel-snapper</a>
+    by Hugo Duprez (<a href="LICENSE-snapper.txt" target="_blank">MIT</a>).
+  </p>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
