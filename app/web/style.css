@@ -59,6 +59,18 @@ button {
 }
 button:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; }
 button:hover:not(:disabled) { background: #2ea043; }
+button.secondary {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  padding: 4px 10px;
+}
+button.secondary:hover:not(:disabled) {
+  background: #30363d;
+}
+.dim-separator {
+  color: #8b949e;
+}
 .status { color: #8b949e; font-size: 13px; }
 
 .previews { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
