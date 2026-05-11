@@ -6,6 +6,10 @@ const els = {
   k: document.getElementById('k'),
   kVal: document.getElementById('k-val'),
   pixelSize: document.getElementById('pixel-size'),
+  finalWidth: document.getElementById('final-width'),
+  finalHeight: document.getElementById('final-height'),
+  finalSizeButtons: document.querySelectorAll('[data-final-size]'),
+  clearFinalSize: document.getElementById('clear-final-size'),
   chromaInputs: document.querySelectorAll('input[name=chroma]'),
   chromaColor: document.getElementById('chroma-color'),
   trim: document.getElementById('trim'),
@@ -131,6 +135,25 @@ function imageDataToCanvas(rgba, w, h, target) {
   ctx.putImageData(id, 0, 0);
 }
 
+function resizeImageDataNearest(rgba, w, h, targetW, targetH) {
+  if (targetW === w && targetH === h) return { rgba, w, h };
+
+  const out = new Uint8ClampedArray(targetW * targetH * 4);
+  for (let y = 0; y < targetH; y++) {
+    const sy = Math.min(h - 1, Math.floor(y * h / targetH));
+    for (let x = 0; x < targetW; x++) {
+      const sx = Math.min(w - 1, Math.floor(x * w / targetW));
+      const src = (sy * w + sx) * 4;
+      const dst = (y * targetW + x) * 4;
+      out[dst] = rgba[src];
+      out[dst + 1] = rgba[src + 1];
+      out[dst + 2] = rgba[src + 2];
+      out[dst + 3] = rgba[src + 3];
+    }
+  }
+  return { rgba: out, w: targetW, h: targetH };
+}
+
 function updateResultPreviewScale(w, h) {
   if (!w || !h) {
     els.previewScale.textContent = '';
@@ -166,6 +189,21 @@ function getChromaMode() {
   return document.querySelector('input[name=chroma]:checked').value;
 }
 
+function getFinalSize() {
+  const wRaw = els.finalWidth.value.trim();
+  const hRaw = els.finalHeight.value.trim();
+  if (!wRaw && !hRaw) return null;
+
+  const w = wRaw ? parseInt(wRaw, 10) : null;
+  const h = hRaw ? parseInt(hRaw, 10) : null;
+  if ((wRaw && (!Number.isFinite(w) || w < 1)) || (hRaw && (!Number.isFinite(h) || h < 1))) {
+    throw new Error('final size must be positive');
+  }
+  if (w && h) return { w, h };
+  if (w) return { w, h: w };
+  return { w: h, h };
+}
+
 function setStatus(msg) { els.status.textContent = msg; }
 function setMeta(html) { els.meta.innerHTML = html; }
 
@@ -196,6 +234,14 @@ async function runPipeline() {
   const chromaMode = getChromaMode();
   const tolerance = parseInt(els.tolerance.value, 10);
   const trim = els.trim.checked;
+  let finalSize;
+  try {
+    finalSize = getFinalSize();
+  } catch (e) {
+    setStatus(String(e.message || e));
+    els.run.disabled = false;
+    return;
+  }
 
   let outBytes;
   const t0 = performance.now();
@@ -233,6 +279,12 @@ async function runPipeline() {
     rgba = trimmed.rgba; w = trimmed.w; h = trimmed.h;
   }
 
+  const preResizeSize = [w, h];
+  if (finalSize) {
+    const resized = resizeImageDataNearest(rgba, w, h, finalSize.w, finalSize.h);
+    rgba = resized.rgba; w = resized.w; h = resized.h;
+  }
+
   // render
   imageDataToCanvas(rgba, w, h, els.resultCanvas);
   updateResultPreviewScale(w, h);
@@ -245,13 +297,17 @@ async function runPipeline() {
 
   // meta
   const counts = countAlpha(rgba);
-  const trimNote = (trim && bg !== null && (beforeSize[0] !== w || beforeSize[1] !== h))
+  const trimNote = (trim && bg !== null && (beforeSize[0] !== preResizeSize[0] || beforeSize[1] !== preResizeSize[1]))
     ? ` → trimmed from ${beforeSize[0]}×${beforeSize[1]}`
+    : '';
+  const resizeNote = finalSize && (preResizeSize[0] !== w || preResizeSize[1] !== h)
+    ? ` · <strong>resized:</strong> ${preResizeSize[0]}×${preResizeSize[1]} → ${w}×${h}`
     : '';
   const psNote = ps ? `${ps}px (override)` : 'auto';
   setMeta(
     `<strong>snapped:</strong> ${snapped.width}×${snapped.height}` +
     ` · <strong>output:</strong> ${w}×${h}${trimNote}` +
+    resizeNote +
     ` · <strong>pixel_size:</strong> ${psNote}` +
     ` · <strong>chroma:</strong> ${chromaInfo}` +
     ` · <strong>α:</strong> ${counts.opaque} opaque / ${counts.transparent} transparent` +
@@ -270,6 +326,19 @@ async function runPipeline() {
 els.k.addEventListener('input', () => { els.kVal.value = els.k.value; });
 els.tolerance.addEventListener('input', () => { els.toleranceVal.value = els.tolerance.value; });
 
+for (const btn of els.finalSizeButtons) {
+  btn.addEventListener('click', () => {
+    els.finalWidth.value = btn.dataset.finalSize;
+    els.finalHeight.value = btn.dataset.finalSize;
+    scheduleRun();
+  });
+}
+els.clearFinalSize.addEventListener('click', () => {
+  els.finalWidth.value = '';
+  els.finalHeight.value = '';
+  scheduleRun();
+});
+
 for (const r of els.chromaInputs) {
   r.addEventListener('change', () => {
     els.chromaColor.disabled = getChromaMode() !== 'force';
@@ -282,7 +351,7 @@ function scheduleRun() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(runPipeline, 250);
 }
-for (const id of ['k', 'pixelSize', 'tolerance']) els[id].addEventListener('change', scheduleRun);
+for (const id of ['k', 'pixelSize', 'finalWidth', 'finalHeight', 'tolerance']) els[id].addEventListener('change', scheduleRun);
 els.trim.addEventListener('change', scheduleRun);
 els.chromaColor.addEventListener('change', scheduleRun);
 for (const r of els.chromaInputs) r.addEventListener('change', scheduleRun);

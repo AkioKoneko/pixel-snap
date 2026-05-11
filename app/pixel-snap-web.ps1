@@ -22,7 +22,7 @@ try {
     param([int]$Port)
     try {
       $res = Invoke-WebRequest -Uri "http://127.0.0.1:$Port/web/index.html" -UseBasicParsing -TimeoutSec 1
-      return $res.StatusCode -eq 200 -and $res.Content -match "Pixel Snap"
+      return $res.StatusCode -eq 200 -and $res.Content -match "Pixel Snap" -and $res.Content -match "final-width"
     } catch {
       return $false
     }
@@ -92,7 +92,8 @@ try {
     }
   }
 
-  $Url = "http://127.0.0.1:$Port/web/"
+  $CacheBust = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+  $Url = "http://127.0.0.1:$Port/web/?v=$CacheBust"
   $Browser = Find-Chromium
 
   if ($Browser) {
