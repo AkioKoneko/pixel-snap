@@ -2,6 +2,21 @@
 
 Convert AI-generated "mixel" images into true pixel-perfect PNGs.
 
+## Быстрый старт для Windows
+
+1. Скачай репозиторий с GitHub: **Code → Download ZIP**.
+2. Распакуй ZIP в обычную папку, например `C:\Users\<you>\Documents\Tools\pixel-snap`.
+3. Установи Python 3. В PowerShell можно так:
+
+```powershell
+winget install --id Python.Python.3.14 -e
+```
+
+4. Перезапусти PowerShell/Проводник, если команда `python` сразу не появилась в PATH.
+5. Запусти `Pixel Snap.bat`. Он поднимет локальный сервер и откроет приложение в Chrome/Edge.
+
+Для web-приложения больше ничего ставить не нужно. `Pillow`, Rust и Node.js нужны только для CLI, пересборки WASM или тестов.
+
 ## What it does
 
 1. **Snap** — detect latent pixel grid via gradient peaks; quantize palette via k-means; collapse each detected cell to its dominant RGBA value. Bundled binary is [Hugo-Dz/spritefusion-pixel-snapper](https://github.com/Hugo-Dz/spritefusion-pixel-snapper) (MIT).
@@ -12,13 +27,19 @@ Output is a PNG at **true native resolution** (e.g. 39×36, 84×84). Scales clea
 
 ## Setup
 
-One-time:
+For the web app launcher:
+
+- Install Python 3 and make sure `python` or `py` is available in PATH.
+- No Python packages are needed for the browser app itself.
+- No Rust or Node.js is needed unless you rebuild WASM or run tests.
+
+For the console CLI:
 
 ```powershell
 python -m pip install Pillow
 ```
 
-For tests:
+For tests, install Node.js too:
 
 ```powershell
 npm --prefix app\test ci
@@ -87,7 +108,7 @@ python C:\Users\sasha\OneDrive\Documents\Tools\pixel-snap\app\snap.py input.png 
 | `--chroma auto\|off\|force` | auto | auto = corner-vote; off = skip; force = use --chroma-color |
 | `--chroma-color HHHHHH` | — | hex bg for `--chroma force` |
 | `--trim` | off | crop to alpha bbox after chroma |
-| `--tolerance N` | 30 | RGB Chebyshev distance for chroma match |
+| `--tolerance N` | 30 | RGB Chebyshev distance for chroma match; web slider supports 0..255 |
 | `--snapped-out PATH` | — | also save the post-snap PNG (background intact) |
 
 ## Recipes

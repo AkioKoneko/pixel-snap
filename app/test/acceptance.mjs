@@ -9,6 +9,7 @@ import init, { process_image } from '../web/pkg/spritefusion_pixel_snapper.js';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.dirname(here);
 const srcPath = path.join(root, 'test-input', 'berries_source.png');
+const bonePilePath = path.join(root, 'test-input', 'desert_bone_pile_01_source.png');
 const wasmPath = path.join(root, 'web', 'pkg', 'spritefusion_pixel_snapper_bg.wasm');
 const expected = {
   w: 39,
@@ -87,6 +88,15 @@ function decodePng(bytes) {
   return { rgba: new Uint8Array(png.data), w: png.width, h: png.height };
 }
 
+function countVisiblePinkish(rgba) {
+  let count = 0;
+  for (let i = 0; i < rgba.length; i += 4) {
+    if (rgba[i + 3] === 0) continue;
+    if (rgba[i] > 120 && rgba[i + 1] < 80 && rgba[i + 2] > 100) count++;
+  }
+  return count;
+}
+
 // --- run pipeline ---
 
 const srcBytes = readFileSync(srcPath);
@@ -114,8 +124,22 @@ const total = trimmed.w * trimmed.h;
 const actualHash = createHash('sha256').update(trimmed.rgba).digest('hex');
 if (actualHash === expected.rgbaSha256) {
   console.log(`PASS: ${total} pixels identical`);
-  process.exit(0);
 } else {
   console.error(`FAIL: RGBA hash mismatch (got ${actualHash}, expected ${expected.rgbaSha256})`);
   process.exit(1);
 }
+
+// Regression fixture: tolerance above the old web max is needed to remove magenta remnants.
+const boneBytes = readFileSync(bonePilePath);
+const boneSnapped = decodePng(process_image(boneBytes, 32, undefined));
+const boneBg = detectBgColor(boneSnapped.rgba, boneSnapped.w, boneSnapped.h);
+if (!boneBg) { console.error('FAIL: no bg detected for bone pile'); process.exit(1); }
+chromaKey(boneSnapped.rgba, boneBg, 140);
+const pinkish = countVisiblePinkish(boneSnapped.rgba);
+console.log(`bone pile visible pinkish pixels at tol=140: ${pinkish}`);
+if (pinkish !== 0) {
+  console.error(`FAIL: expected no visible pinkish pixels, got ${pinkish}`);
+  process.exit(1);
+}
+
+process.exit(0);
