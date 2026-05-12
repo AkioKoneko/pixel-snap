@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Pixel Snap</title>
 <link rel="icon" href="/assets/pixel-snap.ico">
-<link rel="stylesheet" href="style.css?v=final-size">
+<link rel="stylesheet" href="style.css?v=save-source-drop">
 </head>
 <body>
 <header>
@@ -13,11 +13,6 @@
 </header>
 
 <main>
-  <section id="drop" class="drop-zone">
-    <p>Drop a PNG/JPG here or <label class="link" for="file">browse</label>.</p>
-    <input type="file" id="file" accept="image/png,image/jpeg" hidden>
-  </section>
-
   <section class="controls">
     <div class="row">
       <label>
@@ -46,6 +41,7 @@
       <button type="button" class="secondary" data-final-size="64">64</button>
       <button type="button" class="secondary" data-final-size="128">128</button>
       <button type="button" class="secondary" id="clear-final-size">native</button>
+      <label class="inline-check"><input type="checkbox" id="preserve-aspect" checked> keep aspect</label>
     </div>
     <div class="row">
       <label>
@@ -64,7 +60,7 @@
         tolerance <output id="tolerance-val">30</output>
         <span class="hint">Насколько близкий к фону цвет станет прозрачным. Больше - агрессивнее чистка.</span>
       </label>
-      <input type="range" id="tolerance" min="0" max="80" value="30" step="1">
+      <input type="range" id="tolerance" min="0" max="255" value="30" step="1">
     </div>
     <div class="row">
       <label>
@@ -74,7 +70,7 @@
     </div>
     <div class="row">
       <button id="run" disabled>Snap</button>
-      <button id="download" disabled title="Скачивает native PNG, без preview-увеличения.">Download PNG</button>
+      <button id="download" disabled title="Saves native PNG, without preview upscale.">Save PNG</button>
       <span id="status" class="status"></span>
     </div>
   </section>
@@ -82,7 +78,14 @@
   <section class="previews">
     <div class="preview">
       <h2>Source</h2>
-      <div class="canvas-box"><img id="source-img" alt=""></div>
+      <div id="drop" class="canvas-box source-drop">
+        <img id="source-img" alt="">
+        <div class="drop-prompt">
+          <strong>Drop PNG/JPG here</strong>
+          <span>or <label class="link" for="file">browse</label> to replace source</span>
+        </div>
+        <input type="file" id="file" accept="image/png,image/jpeg" hidden>
+      </div>
     </div>
     <div class="preview">
       <h2>Result <span id="preview-scale" class="preview-scale"></span></h2>
@@ -100,6 +103,6 @@
   </p>
 </footer>
 
-<script type="module" src="app.js?v=final-size"></script>
+<script type="module" src="app.js?v=save-source-drop"></script>
 </body>
 </html>

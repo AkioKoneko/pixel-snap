@@ -16,16 +16,6 @@ h2 { font-size: 14px; margin: 0 0 8px; color: #8b949e; text-transform: uppercase
 
 main { display: flex; flex-direction: column; gap: 16px; }
 
-.drop-zone {
-  border: 2px dashed #30363d;
-  border-radius: 8px;
-  padding: 32px;
-  text-align: center;
-  background: #161b22;
-  transition: border-color 0.15s, background 0.15s;
-}
-.drop-zone.hover { border-color: #58a6ff; background: #0d1f33; }
-.drop-zone p { margin: 0; color: #8b949e; }
 .link { color: #58a6ff; cursor: pointer; text-decoration: underline; }
 
 .controls {
@@ -48,6 +38,14 @@ main { display: flex; flex-direction: column; gap: 16px; }
 }
 .radios { display: inline-flex; gap: 12px; }
 .radios label { color: #c9d1d9; min-width: 0; }
+.inline-check {
+  min-width: 0 !important;
+  max-width: none !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #c9d1d9;
+}
 input[type=range] { flex: 1; max-width: 320px; }
 input[type=number] { width: 100px; background: #0d1117; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; padding: 4px 8px; font: inherit; }
 input[type=color] { width: 36px; height: 28px; border: 1px solid #30363d; border-radius: 4px; background: transparent; padding: 0; cursor: pointer; }
@@ -85,6 +83,43 @@ button.secondary:hover:not(:disabled) {
   border-radius: 4px;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
+}
+.source-drop {
+  position: relative;
+  border: 2px dashed #30363d;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.source-drop.hover {
+  border-color: #58a6ff;
+  background-color: #0d1f33;
+}
+.drop-prompt {
+  position: absolute;
+  inset: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #8b949e;
+  text-align: center;
+  pointer-events: none;
+}
+.drop-prompt .link {
+  pointer-events: auto;
+}
+.drop-prompt strong {
+  color: #c9d1d9;
+}
+.source-drop.has-image .drop-prompt {
+  inset: auto 12px 12px;
+  padding: 6px 10px;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  background: rgba(13, 17, 23, 0.86);
+  align-items: flex-start;
+  font-size: 12px;
 }
 .result-box {
   aspect-ratio: auto;

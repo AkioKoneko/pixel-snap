@@ -10,6 +10,7 @@ const els = {
   finalHeight: document.getElementById('final-height'),
   finalSizeButtons: document.querySelectorAll('[data-final-size]'),
   clearFinalSize: document.getElementById('clear-final-size'),
+  preserveAspect: document.getElementById('preserve-aspect'),
   chromaInputs: document.querySelectorAll('input[name=chroma]'),
   chromaColor: document.getElementById('chroma-color'),
   trim: document.getElementById('trim'),
@@ -29,6 +30,8 @@ let sourceBytes = null;
 let sourceUrl = null;
 let resultBlobUrl = null;
 let resultName = 'snapped.png';
+let lastNativeSize = null;
+let finalSizeMode = 'native';
 
 await init();
 
@@ -189,7 +192,45 @@ function getChromaMode() {
   return document.querySelector('input[name=chroma]:checked').value;
 }
 
-function getFinalSize() {
+function sizeText(size) {
+  return size ? `${size.w}x${size.h}` : 'native';
+}
+
+function aspectHeight(width, baseSize) {
+  return Math.max(1, Math.round(width * baseSize.h / baseSize.w));
+}
+
+function aspectWidth(height, baseSize) {
+  return Math.max(1, Math.round(height * baseSize.w / baseSize.h));
+}
+
+function setFinalFields(w, h) {
+  els.finalWidth.value = w ? String(w) : '';
+  els.finalHeight.value = h ? String(h) : '';
+}
+
+function setNativeSize(size) {
+  lastNativeSize = size;
+  const text = sizeText(size);
+  els.finalWidth.placeholder = size ? String(size.w) : 'native';
+  els.finalHeight.placeholder = size ? String(size.h) : 'native';
+  els.clearFinalSize.title = size ? `Use native output size: ${text}` : 'Use native output size';
+  if (size && finalSizeMode === 'native') setFinalFields(size.w, size.h);
+}
+
+function syncFinalAspectFrom(axis) {
+  if (!els.preserveAspect.checked || !lastNativeSize) return;
+  if (axis === 'w') {
+    const w = parseInt(els.finalWidth.value, 10);
+    if (Number.isFinite(w) && w > 0) els.finalHeight.value = String(aspectHeight(w, lastNativeSize));
+  } else {
+    const h = parseInt(els.finalHeight.value, 10);
+    if (Number.isFinite(h) && h > 0) els.finalWidth.value = String(aspectWidth(h, lastNativeSize));
+  }
+}
+
+function getFinalSize(baseSize = lastNativeSize) {
+  if (finalSizeMode === 'native') return null;
   const wRaw = els.finalWidth.value.trim();
   const hRaw = els.finalHeight.value.trim();
   if (!wRaw && !hRaw) return null;
@@ -198,6 +239,10 @@ function getFinalSize() {
   const h = hRaw ? parseInt(hRaw, 10) : null;
   if ((wRaw && (!Number.isFinite(w) || w < 1)) || (hRaw && (!Number.isFinite(h) || h < 1))) {
     throw new Error('final size must be positive');
+  }
+  if (els.preserveAspect.checked && baseSize) {
+    if (w) return { w, h: aspectHeight(w, baseSize) };
+    if (h) return { w: aspectWidth(h, baseSize), h };
   }
   if (w && h) return { w, h };
   if (w) return { w, h: w };
@@ -216,6 +261,7 @@ async function loadFile(file) {
   if (sourceUrl) URL.revokeObjectURL(sourceUrl);
   sourceUrl = URL.createObjectURL(new Blob([sourceBytes]));
   els.sourceImg.src = sourceUrl;
+  els.drop.classList.add('has-image');
   els.run.disabled = false;
   setStatus('loaded — click Snap');
   setMeta('');
@@ -234,14 +280,6 @@ async function runPipeline() {
   const chromaMode = getChromaMode();
   const tolerance = parseInt(els.tolerance.value, 10);
   const trim = els.trim.checked;
-  let finalSize;
-  try {
-    finalSize = getFinalSize();
-  } catch (e) {
-    setStatus(String(e.message || e));
-    els.run.disabled = false;
-    return;
-  }
 
   let outBytes;
   const t0 = performance.now();
@@ -280,6 +318,16 @@ async function runPipeline() {
   }
 
   const preResizeSize = [w, h];
+  setNativeSize({ w, h });
+  let finalSize;
+  try {
+    finalSize = getFinalSize({ w, h });
+  } catch (e) {
+    setStatus(String(e.message || e));
+    els.run.disabled = false;
+    return;
+  }
+  if (finalSize && els.preserveAspect.checked) setFinalFields(finalSize.w, finalSize.h);
   if (finalSize) {
     const resized = resizeImageDataNearest(rgba, w, h, finalSize.w, finalSize.h);
     rgba = resized.rgba; w = resized.w; h = resized.h;
@@ -328,14 +376,20 @@ els.tolerance.addEventListener('input', () => { els.toleranceVal.value = els.tol
 
 for (const btn of els.finalSizeButtons) {
   btn.addEventListener('click', () => {
-    els.finalWidth.value = btn.dataset.finalSize;
-    els.finalHeight.value = btn.dataset.finalSize;
+    finalSizeMode = 'custom';
+    const size = parseInt(btn.dataset.finalSize, 10);
+    if (els.preserveAspect.checked && lastNativeSize) {
+      setFinalFields(size, aspectHeight(size, lastNativeSize));
+    } else {
+      setFinalFields(size, size);
+    }
     scheduleRun();
   });
 }
 els.clearFinalSize.addEventListener('click', () => {
-  els.finalWidth.value = '';
-  els.finalHeight.value = '';
+  finalSizeMode = 'native';
+  if (lastNativeSize) setFinalFields(lastNativeSize.w, lastNativeSize.h);
+  else setFinalFields('', '');
   scheduleRun();
 });
 
@@ -351,7 +405,23 @@ function scheduleRun() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(runPipeline, 250);
 }
-for (const id of ['k', 'pixelSize', 'finalWidth', 'finalHeight', 'tolerance']) els[id].addEventListener('change', scheduleRun);
+for (const id of ['k', 'pixelSize', 'tolerance']) els[id].addEventListener('change', scheduleRun);
+els.finalWidth.addEventListener('change', () => {
+  finalSizeMode = (els.finalWidth.value.trim() || els.finalHeight.value.trim()) ? 'custom' : 'native';
+  if (finalSizeMode === 'custom') syncFinalAspectFrom('w');
+  scheduleRun();
+});
+els.finalHeight.addEventListener('change', () => {
+  finalSizeMode = (els.finalWidth.value.trim() || els.finalHeight.value.trim()) ? 'custom' : 'native';
+  if (finalSizeMode === 'custom') syncFinalAspectFrom('h');
+  scheduleRun();
+});
+els.preserveAspect.addEventListener('change', () => {
+  if (els.preserveAspect.checked && finalSizeMode === 'custom') {
+    syncFinalAspectFrom(els.finalWidth.value.trim() ? 'w' : 'h');
+  }
+  scheduleRun();
+});
 els.trim.addEventListener('change', scheduleRun);
 els.chromaColor.addEventListener('change', scheduleRun);
 for (const r of els.chromaInputs) r.addEventListener('change', scheduleRun);
@@ -364,17 +434,67 @@ els.run.addEventListener('click', runPipeline);
 
 els.download.addEventListener('click', () => {
   if (!resultBlobUrl) return;
+  saveResult();
+});
+
+async function saveResult() {
+  const blob = await fetch(resultBlobUrl).then(r => r.blob());
+
+  if ('showSaveFilePicker' in window) {
+    try {
+      setStatus('choose output file');
+      const file = await window.showSaveFilePicker({
+        suggestedName: resultName,
+        startIn: 'downloads',
+        types: [{ description: 'PNG image', accept: { 'image/png': ['.png'] } }],
+      });
+      const writable = await file.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      setStatus(`saved ${resultName}`);
+      return;
+    } catch (e) {
+      if (e?.name === 'AbortError') {
+        setStatus('save canceled');
+        return;
+      }
+      setStatus('save picker failed - using download');
+    }
+  } else if ('showDirectoryPicker' in window) {
+    try {
+      setStatus('choose output folder');
+      const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+      const file = await dir.getFileHandle(resultName, { create: true });
+      const writable = await file.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      setStatus(`saved ${resultName}`);
+      return;
+    } catch (e) {
+      if (e?.name === 'AbortError') {
+        setStatus('save canceled');
+        return;
+      }
+      setStatus('folder save failed - using download');
+    }
+  }
+
   const a = document.createElement('a');
   a.href = resultBlobUrl;
   a.download = resultName;
   document.body.appendChild(a);
   a.click();
   a.remove();
-});
+  setStatus('download started');
+}
 
 els.file.addEventListener('change', e => {
   const f = e.target.files[0];
   if (f) loadFile(f);
+});
+
+els.drop.addEventListener('click', e => {
+  if (e.target !== els.file && e.target.tagName !== 'LABEL') els.file.click();
 });
 
 ['dragenter', 'dragover'].forEach(ev =>
@@ -388,4 +508,4 @@ els.drop.addEventListener('drop', e => {
   if (f) loadFile(f);
 });
 
-setStatus('ready — drop an image');
+setStatus('ready - drop an image on Source');
